@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+		<!-- 开启aop，对代理类 -->
+		<aop:config proxy-target-class="true	"></aop:config>
+		<!-- 开启shiro的注解支持 -->
+		<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+			<property name="securityManager" ref="securityManager"></property>
+		</bean>
+	<!-- shiro为集成springMvc 拦截异常 -->
+	<bean
+		class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<!-- 没有权限异常跳转的页面
+					如果springmvc配置了视图解析器，那么会自动跳转到视图解析对应的地址，只需要配置路径视图名称即可
+				 -->
+				<prop key="org.apache.shiro.authz.UnauthorizedException">unauthorized</prop>
+			</props>
+		</property>
+	</bean>
+		
+	<bean id="myFormAuthentictionFilter" class="com.xsw.logistics.MyFormAuthentictionFilter"></bean>
+
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+	
+		<!-- 设置shiro的过滤器 -->
+		<property name="filters">
+			<map>
+				<entry key="authc" value-ref="myFormAuthentictionFilter"></entry>
+			</map>
+		</property>
+		<!-- 配置安全管理器 -->
+		<property name="securityManager" ref="securityManager"></property>
+		<!-- 认证失败的访问页面 -->
+		<property name="loginUrl" value="/admin/login.do"></property>
+		<!-- 认证成功的页面 -->
+		<property name="successUrl" value="/index.do"></property>
+		<!-- 没有权限访问跳转的页面（只对xml方式配置权限有效） -->
+		<property name="unauthorizedUrl" value="unauthorizedUrl.jsp"></property>
+		<!-- 配置shiro过滤器链 -->
+		<property name="filterChainDefinitions">
+		<value>
+			/js/**=anon
+			/lib/**=anon
+			/static/**=anon
+			/login.jsp=anon
+			/verifyCode.jsp=anon
+			<!-- 退出登录 -->
+			/admin/logout.do=logout
+			<!-- 记住我默认访问页面 -->
+			/index.do=user
+			
+			/**=authc
+			</value>
+		</property>
+		
+		
+		
+	</bean>
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<!-- 配置realm -->
+		<property name="realm" ref="userRealm"></property>
+		<!-- 配置缓存 -->
+		<property name="cacheManager" ref="cacheManager"></property>
+		<!-- 配置会话管理器 -->
+		<property name="sessionManager" ref="sessionManager"></property>
+		<!-- 配置记住我 -->
+		<property name="rememberMeManager" ref="rememberMeManager"></property>
+	</bean>
+	<!-- 配置记住我 -->
+	<bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+		<property name="cookie">
+			<bean class="org.apache.shiro.web.servlet.SimpleCookie">
+				<constructor-arg name="name" value="rememberMe"/>
+				<property name="maxAge" value="#{3600*24*3}"></property>
+			</bean>
+		</property>
+	</bean>
+	<!-- 配置会话管理器 -->
+	<bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+		<!-- 删除无效的session -->
+		<property name="deleteInvalidSessions" value="true"></property>
+		<!-- 设置超时时间 -->
+		<property name="globalSessionTimeout" value="#{1000*10*60}"></property>
+	</bean>
+	
+	<!-- 配置缓存 -->
+	<bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManagerConfigFile" value="classpath:shiro-ehcache.xml"></property>
+		
+	</bean>
+	<!-- 配置自定义realm -->
+	<bean id="userRealm" class="com.xsw.logistics.UserRealm">
+		<!-- 配置凭证匹配器 -->
+		<property name="credentialsMatcher" ref="credentialsMatcher"></property>
+	</bean>
+	<bean id="credentialsMatcher" class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+		<property name="hashAlgorithmName" value="md5"></property>
+		<property name="hashIterations" value="3"></property>
+	</bean>
+	
+	
+</beans>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
